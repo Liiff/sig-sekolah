@@ -6,6 +6,7 @@ namespace Tests\Feature;
 use App\Models\Sekolah;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class RbacTest extends TestCase
@@ -166,18 +167,12 @@ class RbacTest extends TestCase
         $a = $this->sekolah('11111111');
         $op = $this->user('sekolah', $a);
 
-        $this->actingAs($op)
-            ->put("/sekolah/{$a->id}", [
-                'npsn'      => '99999999',
-                'nama'      => 'Nama Baru',
-                'jenjang'   => 'SD',
-                'status'    => 'Negeri',
-                'alamat'    => 'Jl. Baru',
-                'kecamatan' => 'Uji',
-                'latitude'  => -3.31,
-                'longitude' => 114.6,
-            ])
-            ->assertRedirect();
+        $this->actingAs($op)->put("/sekolah/{$a->id}", [
+            'npsn' => '99999999', 'nama' => 'Nama Baru',
+            'jenjang' => 'SD', 'status' => 'Negeri',
+            'alamat' => 'Jl. Baru', 'kecamatan' => 'Uji',
+            'latitude' => -3.3005, 'longitude' => 114.59, // ± 55 m dari titik awal
+        ])->assertRedirect();
 
         $a->refresh();
 
@@ -215,5 +210,105 @@ class RbacTest extends TestCase
         $this->assertDatabaseHas('sekolahs', [
             'id' => $a->id,
         ]);
+    }
+
+    public function test_pengguna_dapat_mengubah_kata_sandi(): void
+    {
+        $u = $this->user('dinas'); // sandi factory: "password"
+
+        $this->actingAs($u)->put('/password', [
+            'current_password' => 'salah',
+            'password' => 'baru12345', 'password_confirmation' => 'baru12345',
+        ])->assertSessionHasErrors('current_password');
+
+        $this->actingAs($u)->put('/password', [
+            'current_password' => 'password',
+            'password' => 'baru12345', 'password_confirmation' => 'baru12345',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertTrue(Hash::check('baru12345', $u->fresh()->password));
+    }
+
+    public function test_akun_nonaktif_tidak_bisa_login(): void
+    {
+        $u = $this->user('dinas');
+        $u->is_active = false;
+        $u->save();
+
+        $this->post('/login', ['email' => $u->email, 'password' => 'password'])
+            ->assertSessionHasErrors('email');
+        $this->assertGuest();
+    }
+
+    public function test_akun_yang_dinonaktifkan_saat_login_dikeluarkan(): void
+    {
+        $u = $this->user('dinas');
+        $this->actingAs($u);
+        $u->is_active = false;
+        $u->save();
+
+        $this->get('/dashboard')->assertRedirect('/login');
+        $this->assertGuest();
+    }
+
+    public function test_admin_tidak_bisa_menonaktifkan_diri_sendiri(): void
+    {
+        $admin = $this->user('admin');
+        $this->actingAs($admin)->patch("/admin/users/{$admin->id}/toggle");
+        $this->assertTrue($admin->fresh()->is_active);
+    }
+
+    public function test_perubahan_sekolah_tercatat_di_log(): void
+    {
+        $a = $this->sekolah('11111111');
+        $op = $this->user('sekolah', $a);
+
+        $this->actingAs($op)->put("/sekolah/{$a->id}", [
+            'npsn' => '11111111', 'nama' => 'Nama Baru',
+            'jenjang' => 'SD', 'status' => 'Negeri',
+            'alamat' => 'Jl. Uji', 'kecamatan' => 'Uji',
+            'latitude' => -3.3, 'longitude' => 114.59,
+        ]);
+
+        $this->assertDatabaseHas('activity_logs', [
+            'aksi' => 'ubah', 'sekolah_id' => $a->id, 'user_id' => $op->id,
+        ]);
+    }
+
+    public function test_hanya_admin_melihat_log(): void
+    {
+        $this->actingAs($this->user('dinas'))->get('/admin/log')->assertForbidden();
+        $this->actingAs($this->user('admin'))->get('/admin/log')->assertOk();
+    }
+
+    public function test_sekolah_tidak_dapat_memindahkan_lokasi_terlalu_jauh(): void
+    {
+        $a = $this->sekolah('11111111'); // lat -3.3, lng 114.59
+        $op = $this->user('sekolah', $a);
+        $payload = [
+            'npsn' => '11111111', 'nama' => $a->nama, 'jenjang' => 'SD',
+            'status' => 'Negeri', 'alamat' => 'Jl. Uji', 'kecamatan' => 'Uji',
+            'longitude' => 114.59,
+        ];
+
+        // ± 5,5 km -> ditolak
+        $this->actingAs($op)->put("/sekolah/{$a->id}", $payload + ['latitude' => -3.35])
+            ->assertSessionHasErrors('latitude');
+        $this->assertEquals(-3.3, $a->fresh()->latitude);
+
+        // ± 55 m -> diterima
+        $this->actingAs($op)->put("/sekolah/{$a->id}", $payload + ['latitude' => -3.3005])
+            ->assertSessionHasNoErrors();
+        $this->assertEquals(-3.3005, $a->fresh()->latitude);
+    }
+
+    public function test_dinas_tidak_dibatasi_jarak(): void
+    {
+        $a = $this->sekolah('11111111');
+        $this->actingAs($this->user('dinas'))->put("/sekolah/{$a->id}", [
+            'npsn' => '11111111', 'nama' => $a->nama, 'jenjang' => 'SD',
+            'status' => 'Negeri', 'alamat' => 'Jl. Uji', 'kecamatan' => 'Uji',
+            'latitude' => -3.35, 'longitude' => 114.59,
+        ])->assertSessionHasNoErrors();
     }
 }

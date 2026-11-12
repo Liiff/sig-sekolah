@@ -40,6 +40,7 @@
                     <th class="p-3">Email</th>
                     <th class="p-3">Role</th>
                     <th class="p-3">Sekolah</th>
+                    <th class="p-3">Status</th>
                     <th class="p-3">Aksi</th>
                 </tr>
             </thead>
@@ -51,6 +52,7 @@
                         <td class="p-3">{{ $u->email }}</td>
                         <td class="p-3">{{ $u->roleLabel() }}</td>
                         <td class="p-3">{{ $u->sekolah?->nama ?? '-' }}</td>
+                        <td class="p-3">{{ $u->is_active ? 'Aktif' : 'Nonaktif' }}</td>
 
                         <td class="p-3 flex gap-3">
                             <a href="{{ route('admin.users.edit', $u) }}"
@@ -69,12 +71,17 @@
                                         Hapus
                                     </button>
                                 </form>
+                                <form method="POST" action="{{ route('admin.users.toggle', $u) }}">
+                                    @csrf
+                                    @method('PATCH')
+                                    <button class="text-yellow-700">{{ $u->is_active ? 'Nonaktifkan' : 'Aktifkan' }}</button>
+                                </form>
                             @endif
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="p-4 text-center">
+                        <td colspan="6" class="p-4 text-center">
                             Belum ada pengguna.
                         </td>
                     </tr>

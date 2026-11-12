@@ -6,6 +6,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController; 
 use App\Http\Controllers\ProfilSekolahController; 
 use App\Http\Controllers\UserController; 
+use App\Http\Controllers\PasswordController;
+use App\Http\Controllers\ActivityLogController;
 use Illuminate\Support\Facades\Route;
 
 // Publik 
@@ -22,11 +24,13 @@ Route::middleware('guest')->group(function () {
 }); 
   
 // Pengguna yang sudah login 
-Route::middleware('auth')->group(function () { 
+Route::middleware(['auth', 'active'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']) 
         ->name('logout'); 
     Route::get('/dashboard', DashboardController::class) 
         ->name('dashboard'); 
+    Route::get('/password', [PasswordController::class, 'edit'])->name('password.edit');
+    Route::put('/password', [PasswordController::class, 'update'])->name('password.update');
   
     // Dinas: daftar, tambah, dan hapus sekolah 
     Route::middleware('role:dinas')->prefix('dinas')->name('dinas.') 
@@ -59,5 +63,9 @@ Route::middleware('auth')->group(function () {
         ->name('admin.')
         ->group(function () {
             Route::resource('users', UserController::class)->except('show');
+            Route::patch('users/{user}/toggle', [UserController::class, 'toggle'])
+                ->name('users.toggle');
+            Route::get('log', [ActivityLogController::class, 'index'])->name('log.index');
         });
-}); 
+        
+});

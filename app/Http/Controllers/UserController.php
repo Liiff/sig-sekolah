@@ -133,4 +133,16 @@ class UserController extends Controller
             ],
         ];
     }
+
+    public function toggle(Request $request, User $user)
+    {
+        if ($user->is($request->user())) {
+            return back()->with('error', 'Anda tidak dapat menonaktifkan akun sendiri.');
+        }
+
+        $user->is_active = ! $user->is_active;
+        $user->save();
+
+        return back()->with('success', 'Status akun diperbarui.');
+    }
 }

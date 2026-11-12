@@ -28,7 +28,8 @@
                 <a href="{{ route('dashboard') }}">Dashboard</a>
 
                 @if (auth()->user()->isAdmin()) 
-                    <a href="{{ route('admin.users.index') }}">Pengguna</a> 
+                    <a href="{{ route('admin.users.index') }}">Pengguna</a>
+                    <a href="{{ route('admin.log.index') }}">Log Aktivitas</a>
                 @endif 
 
                 @if (auth()->user()->isDinas())
@@ -54,7 +55,8 @@
                         {{ auth()->user()->name }}
                         ({{ auth()->user()->roleLabel() }})
                     </span>
-
+                    
+                    <a href="{{ route('password.edit') }}" class="text-sm underline">Ubah Sandi</a>
                     <button class="underline">Keluar</button>
                 </form>
             @endauth

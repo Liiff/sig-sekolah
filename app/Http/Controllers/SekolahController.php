@@ -10,6 +10,19 @@ use Illuminate\Validation\Rule;
 
 class SekolahController extends Controller
 {
+    private function jarakMeter(float $lat1, float $lng1, float $lat2, float $lng2): float
+    {
+        $r = 6371000; // jari-jari bumi (meter)
+        $p1 = deg2rad($lat1);
+        $p2 = deg2rad($lat2);
+        $dp = deg2rad($lat2 - $lat1);
+        $dl = deg2rad($lng2 - $lng1);
+
+        $a = sin($dp / 2) ** 2 + cos($p1) * cos($p2) * sin($dl / 2) ** 2;
+
+        return 2 * $r * asin(min(1, sqrt($a)));
+    }
+
     public function index(Request $request)
     {
         $sekolahs = Sekolah::query()
@@ -56,6 +69,19 @@ class SekolahController extends Controller
         // NPSN adalah identitas resmi: tidak boleh diubah oleh sekolah
         if ($request->user()->isSekolah()) {
             unset($data['npsn']);
+
+            $jarak = $this->jarakMeter(
+                (float) $sekolah->latitude, (float) $sekolah->longitude,
+                (float) $data['latitude'], (float) $data['longitude']
+            );
+
+            if ($jarak > Sekolah::BATAS_GESER_METER) {
+                return back()->withInput()->withErrors([
+                    'latitude' => 'Lokasi baru berjarak ' . round($jarak)
+                        . ' m dari titik semula (batas ' . Sekolah::BATAS_GESER_METER
+                        . ' m). Hubungi Dinas Pendidikan untuk perubahan lebih jauh.',
+                ]);
+            }
         }
 
         $sekolah->update($data);

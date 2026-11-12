@@ -29,11 +29,16 @@ class User extends Authenticatable
     public const ROLE_DINAS = 'dinas'; 
     public const ROLE_SEKOLAH = 'sekolah'; 
 
+    protected $attributes = [
+        'is_active' => true,
+    ];
+
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
     }
 

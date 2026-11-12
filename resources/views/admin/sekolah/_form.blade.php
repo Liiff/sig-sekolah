@@ -127,48 +127,43 @@
     }).addTo(map);
 
     const marker = L.marker(pusat, { draggable: true }).addTo(map);
+    const batas = @json(auth()->user()->isSekolah() ? \App\Models\Sekolah::BATAS_GESER_METER : null);
+    const asal = @json($sekolah->exists ? [$sekolah->latitude, $sekolah->longitude] : null);
+    let posisiSah = L.latLng(pusat);
+
+    if (batas && asal) {
+        L.circle(asal, { radius: batas, color: '#1d4ed8', weight: 1, fillOpacity: 0.05 }).addTo(map);
+    }
 
     function isiKoordinat(lat, lng) {
         latInput.value = lat.toFixed(7);
         lngInput.value = lng.toFixed(7);
     }
 
-    map.on('click', (e) => {
-        marker.setLatLng(e.latlng);
-        isiKoordinat(e.latlng.lat, e.latlng.lng);
-    });
+    function pindah(latlng) {
+        if (batas && asal && map.distance(asal, latlng) > batas) {
+            alert(`Lokasi terlalu jauh dari titik semula (maks. ${batas} m). Hubungi Dinas Pendidikan.`);
+            marker.setLatLng(posisiSah);
+            isiKoordinat(posisiSah.lat, posisiSah.lng);
+            return;
+        }
+        posisiSah = L.latLng(latlng);
+        marker.setLatLng(posisiSah);
+        isiKoordinat(posisiSah.lat, posisiSah.lng);
+    }
 
-    marker.on('dragend', () => {
-        const p = marker.getLatLng();
-        isiKoordinat(p.lat, p.lng);
-    });
+    map.on('click', (e) => pindah(e.latlng));
+    marker.on('dragend', () => pindah(marker.getLatLng()));
 
     [latInput, lngInput].forEach((el) => {
         el.addEventListener('change', () => {
             const lat = parseFloat(latInput.value);
             const lng = parseFloat(lngInput.value);
             if (!isNaN(lat) && !isNaN(lng)) {
-                marker.setLatLng([lat, lng]);
-                map.setView([lat, lng], 16);
+                pindah(L.latLng(lat, lng));
+                map.setView(marker.getLatLng(), 16);
             }
         });
     });
-
-    document.getElementById('btn-lokasi').addEventListener('click', () => {
-        if (!navigator.geolocation) {
-            alert('Browser tidak mendukung geolocation.');
-            return;
-        }
-        navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                const { latitude, longitude } = pos.coords;
-                marker.setLatLng([latitude, longitude]);
-                map.setView([latitude, longitude], 17);
-                isiKoordinat(latitude, longitude);
-            },
-            () => alert('Tidak bisa mengambil lokasi. Periksa izin lokasi browser.')
-        );
-    });
-
 </script>
 @endpush
