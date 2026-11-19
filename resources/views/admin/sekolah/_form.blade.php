@@ -95,6 +95,14 @@
             </div>
         </div>
 
+<div>
+    <button type="button" id="isi-alamat"
+            class="px-4 py-2 bg-gray-700 text-white rounded">
+        Isi alamat dari peta
+    </button>
+    <span id="status-alamat" class="text-sm text-gray-600 ml-2"></span>
+</div>
+
         <div class="flex gap-3 pt-2">
             <button type="submit"
                     class="px-5 py-2 bg-blue-700 text-white rounded">
@@ -125,6 +133,51 @@
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
+
+    const tombolAlamat = document.getElementById('isi-alamat');
+    const statusAlamat = document.getElementById('status-alamat');
+    let terakhirAlamat = 0;
+
+    tombolAlamat.addEventListener('click', async () => {
+        const lat = parseFloat(latInput.value);
+        const lng = parseFloat(lngInput.value);
+        if (isNaN(lat) || isNaN(lng)) {
+            statusAlamat.textContent = 'Pilih lokasi di peta terlebih dahulu.';
+            return;
+        }
+        // Kebijakan Nominatim: maksimal 1 permintaan per detik
+        if (Date.now() - terakhirAlamat < 1200) return;
+        terakhirAlamat = Date.now();
+
+        statusAlamat.textContent = 'Mencari alamat...';
+        try {
+            const url = 'https://nominatim.openstreetmap.org/reverse'
+                + '?format=jsonv2&addressdetails=1&accept-language=id'
+                + `&lat=${lat}&lon=${lng}`;
+            const respon = await fetch(url);
+            if (!respon.ok) throw new Error('HTTP ' + respon.status);
+            const data = await respon.json();
+            const a = data.address || {};
+
+            const bagian = [
+                a.road,
+                a.suburb || a.neighbourhood || a.village,
+                a.city || a.town || a.county,
+            ].filter(Boolean);
+            document.getElementById('alamat').value =
+                bagian.length ? bagian.join(', ') : (data.display_name ?? '');
+
+            // Kecamatan hanya diisi bila masih kosong dan tersedia
+            const kecamatan = document.getElementById('kecamatan');
+            if (kecamatan.value === '' && a.city_district) {
+                kecamatan.value = a.city_district;
+            }
+            statusAlamat.textContent = 'Alamat terisi. Periksa dan perbaiki bila perlu.';
+        } catch (err) {
+            console.error(err);
+            statusAlamat.textContent = 'Alamat tidak dapat dimuat.';
+        }
+    });
 
     const marker = L.marker(pusat, { draggable: true }).addTo(map);
     const batas = @json(auth()->user()->isSekolah() ? \App\Models\Sekolah::BATAS_GESER_METER : null);

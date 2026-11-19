@@ -137,6 +137,9 @@
                 'peta.wilayah' => 'Wilayah',
                 'peta.rute'    => 'Rute',
                 'peta.alamat'  => 'Cek Lokasi',
+                'peta.gabungan' => 'Gabungan',
+                'peta.batas' => 'Batas Resmi',
+                'peta.bbox' => 'Per Tampilan',
             ];
         @endphp
 

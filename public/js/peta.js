@@ -23,16 +23,19 @@ const Peta = {
     },
 
     // Mengambil seluruh fitur (Feature) sekolah dari endpoint GeoJSON
-    async ambilSekolah(jenjang = '') {
-        const url = `${window.PETA_URL.data}?jenjang=${encodeURIComponent(jenjang)}`;
-        const respon = await fetch(url);
-
+    async ambilSekolah(jenjang = '', status = '', bounds = null) {
+        const params = new URLSearchParams({ jenjang, status });
+        if (bounds) {
+            params.set('bbox', [
+                bounds.getWest(), bounds.getSouth(),
+                bounds.getEast(), bounds.getNorth(),
+            ].join(','));
+        }
+        const respon = await fetch(`${window.PETA_URL.data}?${params}`);
         if (!respon.ok) {
             throw new Error('Gagal memuat data sekolah');
         }
-
         const data = await respon.json();
-
         return data.features;
     },
 

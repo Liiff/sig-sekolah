@@ -38,10 +38,35 @@ class PetaController extends Controller
         return view('peta.alamat');
     }
 
+    public function gabungan()
+    {
+        return view('peta.gabungan');
+    }
+
+    public function batas()
+    {
+        return view('peta.batas');
+    }
+
+    public function bbox()
+    {
+        return view('peta.bbox');
+    }
+
     public function geojson(Request $request)
     {
         $features = Sekolah::with('profil') 
-        ->when($request->jenjang, fn ($q, $j) => $q->where('jenjang', $j)) 
+        ->when($request->jenjang, fn ($q, $j) => $q->where('jenjang', $j))
+        ->when($request->status, fn ($q, $s) => $q->where('status', $s))
+        ->when($request->bbox, function ($q, $bbox) {
+        // bbox = barat,selatan,timur,utara (lng,lat,lng,lat)
+            if (! preg_match('/^-?[0-9]+([.][0-9]+)?(,-?[0-9]+([.][0-9]+)?){3}$/', $bbox)) {
+                return;
+            }
+            [$barat, $selatan, $timur, $utara] = array_map('floatval', explode(',', $bbox));
+            $q->whereBetween('longitude', [$barat, $timur])
+            ->whereBetween('latitude', [$selatan, $utara]);
+        })
         ->get() 
         ->map(fn ($s) => [ 
             'type' => 'Feature', 
