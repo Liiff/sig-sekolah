@@ -1,27 +1,47 @@
 *.log
 .DS_Store
+Thumbs.db
+
+# Environment files
 .env
+.env.*
+!.env.example
 .env.backup
 .env.production
+
+# IDE and editor
 .phpactor.json
 .phpunit.result.cache
 /.codex
 /.cursor/
 /.idea
 /.nova
-/.phpunit.cache
 /.vscode
 /.zed
+
+# Development tools
+/.phpunit.cache
 /auth.json
+_ide_helper.php
+
+# Dependencies
 /node_modules
+/vendor
+
+# Laravel generated files
 /public/build
 /public/fonts-manifest.dev.json
 /public/hot
 /public/storage
 /storage/*.key
 /storage/pail
-/vendor
-_ide_helper.php
+
+# Homestead
 Homestead.json
 Homestead.yaml
-Thumbs.db
+
+# Vercel
+.vercel
+
+# Project-specific
+/sig-sekolah/
