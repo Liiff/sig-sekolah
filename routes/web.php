@@ -9,6 +9,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\ActivityLogController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
 
 // Publik 
 Route::controller(PetaController::class)->group(function () { 
@@ -80,4 +81,14 @@ Route::middleware(['auth', 'active'])->group(function () {
         });
         
         
+});
+
+
+Route::get('/health', function () {
+    try {
+        DB::select('select 1');
+        return response()->json(['status' => 'ok', 'database' => 'connected']);
+    } catch (\Throwable $e) {
+        return response()->json(['status' => 'error', 'database' => 'unreachable'], 503);
+    }
 });

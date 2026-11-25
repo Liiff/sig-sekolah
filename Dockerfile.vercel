@@ -10,7 +10,6 @@ COPY . .
 RUN chmod -R +x node_modules/.bin \
     && npm run build
 
-
 # Tahap 2: PHP + FrankenPHP
 FROM dunglas/frankenphp:1-php8.4-bookworm AS base
 
@@ -21,7 +20,6 @@ RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
         pdo_pgsql
 
 WORKDIR /app
-
 
 # Tahap 3: Install dependensi Composer
 FROM base AS dependencies
@@ -50,7 +48,6 @@ RUN rm -rf bootstrap/cache/*.php \
         --no-dev \
         --classmap-authoritative \
         --no-scripts
-
 
 # Tahap 4: Image akhir
 FROM base AS runtime
